@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/data/data.dart';
 import 'package:flutter_app/widgets/item_list_widget.dart';
 import 'package:flutter_app/repository/network.dart';
+import 'package:flutter_app/widgets/providers/list_items_provider.dart';
+import 'package:provider/provider.dart';
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -30,7 +32,10 @@ class _MyHomePageState extends State<MyHomePage> {
           future: data,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
-              return ListOfItems(data:snapshot.data);
+              return ChangeNotifierProvider<ListItemsProvider>(
+                builder: (_) => ListItemsProvider(),
+                  child:  ListOfItems(data:snapshot.data)
+              );
             } else if (snapshot.hasError) {
               return Text("${snapshot.error}");
             }

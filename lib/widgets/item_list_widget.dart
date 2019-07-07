@@ -1,76 +1,30 @@
 
-import 'package:async/async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/data/data.dart';
 import 'package:flutter_app/data/movie.dart';
-import 'package:flutter_app/repository/network.dart';
+import 'package:flutter_app/widgets/providers/list_items_provider.dart';
+import 'package:provider/provider.dart';
 
-class ListOfItems extends StatefulWidget {
+class ListOfItems extends StatelessWidget {
+  ListOfItems({this.data});
 
   final Data data;
-
-  ListOfItems({Key key, this.data}) : super(key: key);
-
-  @override
-  State<StatefulWidget> createState() => ListOfItemsState();
-}
-
-class ListOfItemsState extends State<ListOfItems>{
-
-  List<Movie> dataList;
-  DataLoadMoreStatus loadMoreStatus = DataLoadMoreStatus.STABLE;
-  final ScrollController scrollController = new ScrollController();
-  int currentPageNumber;
-  int lastPageNumber;
-  CancelableOperation  dataOperation;
-
-  @override
-  void initState() {
-    dataList = widget.data.movies;
-    currentPageNumber = widget.data.page;
-    lastPageNumber = widget.data.totalPages;
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    scrollController.dispose();
-    if(dataOperation != null) dataOperation.cancel();
-    super.dispose();
-  }
-
-  bool onNotification(ScrollNotification notification) {
-    if (notification is ScrollUpdateNotification) {
-      if (scrollController.position.maxScrollExtent > scrollController.offset &&
-          scrollController.position.maxScrollExtent - scrollController.offset <=
-              50 && currentPageNumber < lastPageNumber) {
-        if (loadMoreStatus != null &&
-            loadMoreStatus == DataLoadMoreStatus.STABLE) {
-          loadMoreStatus = DataLoadMoreStatus.LOADING;
-          dataOperation = CancelableOperation.fromFuture(
-              MoviesNetwork.getInstance()
-                  .getPopularMovies(currentPageNumber + 1)
-                  .then((data) {
-                currentPageNumber = data.page;
-                loadMoreStatus = DataLoadMoreStatus.STABLE;
-                setState(() => dataList.addAll(data.movies));
-              }));
-        }
-      }
-    }
-    return true;
-  }
+  ListItemsProvider listItemsModel;
 
   @override
   Widget build(BuildContext context) {
+    listItemsModel = Provider.of<ListItemsProvider>(context);
+    listItemsModel.setDataList(data.movies);
+    listItemsModel.setLastPageNumber(data.totalPages);
+
     return NotificationListener(
-      onNotification: onNotification,
-      child:( _buildDataList(dataList)
+      onNotification: listItemsModel.onNotification,
+      child:( _buildDataList(listItemsModel.getDataList(),listItemsModel.getScrollController())
       ),  // GridView.builder
     );
   }
 
-  Widget _buildDataList(List<Movie> dataList){
+  Widget _buildDataList(List<Movie> dataList, ScrollController scrollController){
     return new ListView.builder(
         controller: scrollController,
         itemCount: dataList.length,
@@ -80,7 +34,9 @@ class ListOfItemsState extends State<ListOfItems>{
   }
 
   Widget _buildDataListItem(Movie movie){
-    if(movie.posterPath==null){movie.posterPath="";}
+    if(movie.posterPath==null){
+      movie.posterPath="";
+    }
     return ListTile(
       leading: new Container(
           width: 60,
@@ -95,3 +51,5 @@ class ListOfItemsState extends State<ListOfItems>{
       title: Text(movie.title),
     );}
 }
+
+
